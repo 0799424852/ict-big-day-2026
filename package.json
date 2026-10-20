@@ -1,0 +1,1 @@
+{"name":"ict-big-day-windows-host","version":"1.0.0","private":true,"type":"module","engines":{"node":">=24"},"scripts":{"start":"node start.mjs --local","live":"node start.mjs --live","trial":"node start.mjs --trial","build":"node build.mjs","test":"node tests/hosting.mjs"},"devDependencies":{"esbuild":"0.28.0","react":"19.2.6","react-dom":"19.2.6","lucide-react":"1.31.0"}}

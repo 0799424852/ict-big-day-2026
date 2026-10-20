@@ -1,0 +1,1 @@
+Download cloudflared for Windows from https://developers.cloudflare.com/tunnel/downloads/ and save the 64-bit executable here as cloudflared.exe, or install the Windows MSI and reopen the launcher.

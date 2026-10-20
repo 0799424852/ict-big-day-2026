@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readPdfUpload} from '../source/app/lib/pdf-upload.ts';
+const request=(files)=>{const body=new FormData();for(const file of files)body.append('file',file);return new Request('https://event.example.invalid/api/files',{method:'POST',body});};
+const pdf=new File(['%PDF-1.4\nExample test content'], 'abstract.pdf',{type:'application/pdf'});
+const accepted=await readPdfUpload(request([pdf]));
+assert.equal(accepted.name,'abstract.pdf');
+assert.equal(accepted.size,pdf.size);
+await assert.rejects(()=>readPdfUpload(request([new File(['<html>not a PDF</html>'],'document.pdf')]))); 
+await assert.rejects(()=>readPdfUpload(request([new File(['%PDF-1.4\ncontents'],'document.html')]))); 
+await assert.rejects(()=>readPdfUpload(request([new File([],'empty.pdf')]))); 
+await assert.rejects(()=>readPdfUpload(request([pdf,pdf]))); 
+await assert.rejects(()=>readPdfUpload(request([new File(['%PDF-'+''.padEnd(200,'x')],'large.pdf')]),100)); 
+await assert.rejects(()=>readPdfUpload(new Request('https://event.example.invalid/api/files',{method:'POST',body:'invalid'})));
+console.log('Passed 8 PDF upload validation checks.');

@@ -1,0 +1,1 @@
+ALTER TABLE `abstract_reviews` ADD `author_released` integer DEFAULT 0 NOT NULL;

@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {mkdtempSync,copyFileSync,mkdirSync,writeFileSync,readdirSync,readFileSync,rmSync} from 'node:fs';
+import {dirname,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+import {DatabaseSync} from 'node:sqlite';
+import {createEventApp} from '../event-app.mjs';
+const root=dirname(dirname(fileURLToPath(import.meta.url))),temporary=mkdtempSync(join(root,'.maintenance-test-'));
+const app=await createEventApp({root,dataDir:join(temporary,'data')}),request=(path,data,cookie)=>app.handle(new Request('http://127.0.0.1:3000'+path,{method:'POST',headers:{Origin:'http://127.0.0.1:3000','Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},body:JSON.stringify(data)}));
+let checks=0;
+try{
+ copyFileSync(join(root,'maintenance.mjs'),join(temporary,'maintenance.mjs'));
+ const owner=await app.auth.create({email:'owner@example.invalid',name:'Test owner',password:'Example owner passphrase'},true);
+ const session=await request('/auth/signin',{email:owner.email,password:'Example owner passphrase'}),cookie=session.headers.get('set-cookie').split(';')[0];
+ await request('/api/platform',{action:'register',name:'Test owner',organisation:'Test',attendance:'in_person',interests:'',goal:'',share_contact:false},cookie);
+ const profile=app.store.sql.prepare('SELECT * FROM profiles WHERE id=?').get(owner.id);
+ await request('/api/platform',{action:'checkin',code:profile.pass_code},cookie);
+ writeFileSync(join(temporary,'data/uploads/fixture.pdf'),'%PDF-1.4 test');
+ writeFileSync(join(temporary,'data/hosting.json'),JSON.stringify({publicUrl:'https://event.example.invalid'}));
+ writeFileSync(join(temporary,'data/tunnel-token.txt'),'fixture-token-do-not-use');
+ let result=spawnSync(process.execPath,[join(temporary,'maintenance.mjs'),'--backup'],{encoding:'utf8'});
+ assert.equal(result.status,0,'Backup command must complete');checks++;
+ const directory=join(temporary,'backups',readdirSync(join(temporary,'backups'))[0]),saved=new DatabaseSync(join(directory,'event.sqlite'));
+ assert.ok(saved.prepare('SELECT registered_at,checked_in_at FROM profiles WHERE id=?').get(owner.id).checked_in_at);checks++;
+ assert.equal(saved.prepare("SELECT value FROM settings WHERE key='workspace_owner'").get().value,owner.id);checks++;
+ saved.close();assert.ok(readFileSync(join(directory,'uploads/fixture.pdf'),'utf8').startsWith('%PDF-'));checks++;
+ assert.equal(readFileSync(join(directory,'tunnel-token.txt'),'utf8'),'fixture-token-do-not-use');checks++;
+ result=spawnSync(process.execPath,[join(temporary,'maintenance.mjs'),'--recover'],{encoding:'utf8'});
+ assert.equal(result.status,0,'Recovery command must complete');checks++;
+ const reset=result.stdout.match(/\/auth\/reset\?token=([A-Za-z0-9_-]+)/)?.[1];assert.ok(reset&&app.auth.resetValid(reset));checks++;
+ assert.ok(app.store.sql.prepare('SELECT checked_in_at FROM profiles WHERE id=?').get(owner.id).checked_in_at);checks++;
+ console.log(`${checks} backup and administrator recovery checks passed.`);
+}finally{app.close();rmSync(temporary,{recursive:true,force:true});}

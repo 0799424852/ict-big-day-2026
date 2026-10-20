@@ -1,0 +1,12 @@
+ICT BIG DAY WINDOWS HOSTING — VALIDATION
+Prepared 17 October 2026.
+
+60 portable hosting checks passed.
+8 backup and administrator recovery checks passed.
+118 event workflow and permission checks passed.
+8 PDF upload validation checks passed.
+QR SVG rasterised and decoded successfully to the exact configured test URL.
+Production client and standalone Node.js bundles built successfully.
+
+Physical Windows execution, interactive browser behaviour and the real public tunnel/phone test must still be checked on the hosting PC. No such test is claimed here.
+The package contains no event database, passwords, account sessions, live tunnel tokens, Site credentials or production attendee records.
