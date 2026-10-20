@@ -1,0 +1,7 @@
+data/event.sqlite
+data/instance-id.txt
+data/uploads/
+.env
+.env.*
+!.env.example
+node_modules/
